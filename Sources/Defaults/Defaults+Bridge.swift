@@ -1,4 +1,3 @@
-import Foundation
 import SwiftUI
 #if os(macOS)
 import AppKit
@@ -8,7 +7,7 @@ import UIKit
 
 extension Defaults.CodableBridge {
 	public func serialize(_ value: Value?) -> Serializable? {
-		guard let value = value else {
+		guard let value else {
 			return nil
 		}
 
@@ -25,11 +24,11 @@ extension Defaults.CodableBridge {
 	}
 
 	public func deserialize(_ object: Serializable?) -> Value? {
-		guard let jsonString = object else {
+		guard let object else {
 			return nil
 		}
 
-		return [Value].init(jsonString: "[\(jsonString)]")?.first
+		return [Value].init(jsonString: "[\(object)]")?.first
 	}
 }
 
@@ -37,30 +36,21 @@ extension Defaults.CodableBridge {
 Any `Value` that conforms to `Codable` and `Defaults.Serializable` will use `CodableBridge` to do the serialization and deserialization.
 */
 extension Defaults {
-	public struct TopLevelCodableBridge<Value: Codable>: CodableBridge {
-		// TODO: A temporary workaround for Xcode 13.3 compiler issue. Should remove after https://bugs.swift.org/browse/SR-15807 is fixed.
-		public init() {}
-	}
+	public struct TopLevelCodableBridge<Value: Codable>: CodableBridge {}
 }
 
 /**
 `RawRepresentableCodableBridge` is needed because, for example, with `enum SomeEnum: String, Codable, Defaults.Serializable`, the compiler will be confused between `RawRepresentableBridge` and `TopLevelCodableBridge`.
 */
 extension Defaults {
-	public struct RawRepresentableCodableBridge<Value: RawRepresentable & Codable>: CodableBridge {
-		// TODO: A temporary workaround for Xcode 13.3 compiler issue. Should remove after https://bugs.swift.org/browse/SR-15807 is fixed.
-		public init() {}
-	}
+	public struct RawRepresentableCodableBridge<Value: RawRepresentable & Codable>: CodableBridge {}
 }
 
 /**
 This exists to avoid compiler ambiguity.
 */
 extension Defaults {
-	public struct CodableNSSecureCodingBridge<Value: Codable & NSSecureCoding>: CodableBridge {
-		// TODO: A temporary workaround for Xcode 13.3 compiler issue. Should remove after https://bugs.swift.org/browse/SR-15807 is fixed.
-		public init() {}
-	}
+	public struct CodableNSSecureCodingBridge<Value: Codable & NSSecureCoding & NSObject>: CodableBridge {}
 }
 
 extension Defaults {
@@ -74,46 +64,40 @@ extension Defaults {
 		public typealias Value = Value
 		public typealias Serializable = Value.RawValue
 
-		// TODO: A temporary workaround for Xcode 13.3 compiler issue. Should remove after https://bugs.swift.org/browse/SR-15807 is fixed.
-		public init() {}
-
 		public func serialize(_ value: Value?) -> Serializable? {
 			value?.rawValue
 		}
 
 		public func deserialize(_ object: Serializable?) -> Value? {
-			guard let rawValue = object else {
+			guard let object else {
 				return nil
 			}
 
-			return Value(rawValue: rawValue)
+			return Value(rawValue: object)
 		}
 	}
 }
 
 extension Defaults {
-	public struct NSSecureCodingBridge<Value: NSSecureCoding>: Bridge {
+	public struct NSSecureCodingBridge<Value: NSSecureCoding & NSObject>: Bridge {
 		public typealias Value = Value
 		public typealias Serializable = Data
 
-		// TODO: A temporary workaround for Xcode 13.3 compiler issue. Should remove after https://bugs.swift.org/browse/SR-15807 is fixed.
-		public init() {}
-
 		public func serialize(_ value: Value?) -> Serializable? {
-			guard let object = value else {
+			guard let value else {
 				return nil
 			}
 
-			return try? NSKeyedArchiver.archivedData(withRootObject: object, requiringSecureCoding: true)
+			return try? NSKeyedArchiver.archivedData(withRootObject: value, requiringSecureCoding: true)
 		}
 
 		public func deserialize(_ object: Serializable?) -> Value? {
-			guard let data = object else {
+			guard let object else {
 				return nil
 			}
 
 			do {
-				return try NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(data) as? Value
+				return try NSKeyedUnarchiver.unarchivedObject(ofClass: Value.self, from: object)
 			} catch {
 				print(error)
 				return nil
@@ -150,8 +134,8 @@ extension Defaults {
 			return array.map { Element.bridge.serialize($0) }.compact()
 		}
 
-		public func deserialize(_ object: Serializable?) -> Value? {
-			guard let array = object else {
+		public func deserialize(_ array: Serializable?) -> Value? {
+			guard let array else {
 				return nil
 			}
 
@@ -165,8 +149,8 @@ extension Defaults {
 		public typealias Value = [Key: Element.Value]
 		public typealias Serializable = [String: Element.Serializable]
 
-		public func serialize(_ value: Value?) -> Serializable? {
-			guard let dictionary = value else {
+		public func serialize(_ dictionary: Value?) -> Serializable? {
+			guard let dictionary else {
 				return nil
 			}
 
@@ -176,8 +160,8 @@ extension Defaults {
 			}
 		}
 
-		public func deserialize(_ object: Serializable?) -> Value? {
-			guard let dictionary = object else {
+		public func deserialize(_ dictionary: Serializable?) -> Value? {
+			guard let dictionary else {
 				return nil
 			}
 
@@ -201,8 +185,8 @@ extension Defaults {
 		public typealias Value = Set<Element>
 		public typealias Serializable = Any
 
-		public func serialize(_ value: Value?) -> Serializable? {
-			guard let set = value else {
+		public func serialize(_ set: Value?) -> Serializable? {
+			guard let set else {
 				return nil
 			}
 
@@ -240,11 +224,8 @@ extension Defaults {
 		public typealias Element = Value.Element
 		public typealias Serializable = Any
 
-		// TODO: A temporary workaround for Xcode 13.3 compiler issue. Should remove after https://bugs.swift.org/browse/SR-15807 is fixed.
-		public init() {}
-
-		public func serialize(_ value: Value?) -> Serializable? {
-			guard let setAlgebra = value else {
+		public func serialize(_ setAlgebra: Value?) -> Serializable? {
+			guard let setAlgebra else {
 				return nil
 			}
 
@@ -282,11 +263,8 @@ extension Defaults {
 		public typealias Element = Value.Element
 		public typealias Serializable = Any
 
-		// TODO: A temporary workaround for Xcode 13.3 compiler issue. Should remove after https://bugs.swift.org/browse/SR-15807 is fixed.
-		public init() {}
-
-		public func serialize(_ value: Value?) -> Serializable? {
-			guard let collection = value else {
+		public func serialize(_ collection: Value?) -> Serializable? {
+			guard let collection else {
 				return nil
 			}
 
@@ -328,7 +306,7 @@ extension Defaults {
 		}
 
 		public func deserialize(_ object: Serializable?) -> Value? {
-			guard let object = object else {
+			guard let object else {
 				return nil
 			}
 
@@ -344,7 +322,7 @@ extension Defaults {
 		typealias Bound = T.Bound
 
 		public func serialize(_ value: Value?) -> Serializable? {
-			guard let value = value else {
+			guard let value else {
 				return nil
 			}
 
@@ -363,7 +341,7 @@ extension Defaults {
 		}
 
 		public func deserialize(_ object: Serializable?) -> Value? {
-			guard let object = object else {
+			guard let object else {
 				return nil
 			}
 
@@ -408,7 +386,7 @@ extension Defaults {
 		#endif
 
 		public func serialize(_ value: Value?) -> Serializable? {
-			guard let value = value else {
+			guard let value else {
 				return nil
 			}
 
@@ -420,7 +398,7 @@ extension Defaults {
 				return NativeColor.bridge.serialize(NativeColor(value))
 			}
 
-			return [colorSpace, components]
+			return [colorSpace, components] as [Any]
 		}
 
 		public func deserialize(_ object: Serializable?) -> Value? {
